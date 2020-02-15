@@ -1,0 +1,11 @@
+library(RCurl)
+library(XML)
+library(stringr)
+xml.url<-"https://timesofindia.indiatimes.com/rssfeedstopstories.cms"
+rssdoc <- xmlParse(getURL(xml.url)) 
+rsstitle <- xpathSApply(rssdoc, '//item/title', xmlValue) 
+rssdesc <- xpathSApply(rssdoc, '//item/description', xmlValue) 
+rssdate <- xpathSApply(rssdoc, '//item/pubDate', xmlValue)
+rsslink<- xpathSApply(rssdoc, '//item/link', xmlValue)
+rssdf<-data.frame(rssdate,rsstitle,rssdesc,rsslink)
+write.csv(rssdf,"timesofindia.csv")
