@@ -23,13 +23,13 @@ access_token_secret <- "SntWz2t5rwpi4OOkniUN0A8CjE1OPDobrGx49adjdNAi9"
 setup_twitter_oauth(api_key,api_secret,access_token,access_token_secret)
 
 
-xiaomi_tweets <- userTimeline("coronavirus", n = 2000)
+xiaomi_tweets <- userTimeline("XiaomiIndia", n = 2000)
 xiaomi_tweets_df <- twListToDF(xiaomi_tweets)
 dim(xiaomi_tweets_df)
 View(xiaomi_tweets_df)
 
-#write.csv(xiaomi_tweets_df,file=paste("XiaomiIndiaTweets.csv"))
-write.csv(xiaomi_tweets_df,file=paste("coronavirus.csv"))
+write.csv(xiaomi_tweets_df,file=paste("XiaomiIndiaTweets.csv"))
+#write.csv(xiaomi_tweets_df,file=paste("coronavirus.csv"))
 
 xiaomi_tweets_df<-read.csv("coronavirus.csv",stringsAsFactors = FALSE)
 
