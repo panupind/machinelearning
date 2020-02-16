@@ -112,13 +112,28 @@ tdm_df<-as.data.frame(tdm_m)
 tweets_dist<-dist(tdm_df)
 hc<-hclust(tweets_dist)
 plot(hc)
+
+
 library(dendextend)
 hcd<-as.dendrogram(hc)
 hcd<-branches_attr_by_labels(hcd,c("eduaubdedubu",
                                    "eduaubdedubu",
                                    "merepaasgifhai"),"red")
 plot(hcd,main="better dendogram")
-rect.dendrogram(hcd,k=2,border = "grey50")
-rect.dendrogram(hcd,k=3,border = "grey50")
+rect.dendrogram(hcd,k=2,border = "red")
+rect.dendrogram(hcd,k=3,border = "green")
+
+
+# Word Associations
+
+associations<-findAssocs(xiaomi_tdm,"fans",0.2)
+associations
+summary(associations)
+list_vect2df(associations)
+associations_df <- list_vect2df(associations)[, 2:3]
+library(ggplot2)
+ggplot(associations_df, aes(y = associations_df[, 1])) +   geom_point(aes(x = associations_df[, 2]),              data = associations_df, size = 3) 
+
+
 
 
