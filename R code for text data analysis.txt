@@ -1,0 +1,114 @@
+# Session Code
+
+text<-"data analytics is the new sensation of modern times,
+often misunderstood as only graphs and dashboards. Its time 
+for businesses to think beyond charts and start leveraging 
+the science behind the data"
+library(qdap)
+freq_terms=freq_terms(text,4)
+plot(freq_terms)
+setwd("")
+tweets<-read.csv("XiaomiIndiaTweets.csv",stringsAsFactors = FALSE)
+str(tweets)
+nrow(tweets)
+xiaomi_tweets <- tweets$text
+xiaomi_tweets
+library(tm)
+xiaomi_source<-VectorSource(xiaomi_tweets)
+xiaomi_corpus <- VCorpus(xiaomi_source)
+xiaomi_corpus
+xiaomi_corpus[[15]]
+xiaomi_corpus[[15]][1]
+stopwords("en")
+removeWords(xiaomi_tweets, stopwords("en"))
+new_stops <- c("xiaomi", "redmi", stopwords("en"))
+data<-removeWords(xiaomi_tweets, new_stops)
+complicate<-c("complicated","complication","complicatedly")
+stem_doc<-stemDocument(complicate)
+stem_doc
+comp_dict<-"complicate"
+complete_text<-stemCompletion(stem_doc,comp_dict)
+complete_text
+
+
+text_data<-"In a complicated haste, Tom rushed to fix new complication, too complicatedly."
+rm_punc<-removePunctuation(text_data)
+rm_punc
+n_char_vec<-unlist(strsplit(rm_punc,split= ' '))
+n_char_vec
+stem_doc<-stemDocument(n_char_vec)
+stem_doc
+complete_doc<-stemCompletion(stem_doc,comp_dict)
+complete_doc
+
+
+clean_corpus<- function(corpus){
+  corpus<-tm_map(corpus,stripWhitespace)
+  corpus<-tm_map(corpus,removePunctuation)
+  corpus<-tm_map(corpus,content_transformer(tolower))
+  corpus<-tm_map(corpus,content_transformer(replace_abbreviation))
+  corpus<-tm_map(corpus,removeNumbers)
+  corpus<-tm_map(corpus,removeWords,c(stopwords("en"),"xiaomi","redmi"))
+  return(corpus)
+}
+
+clean_corp<-clean_corpus(xiaomi_corpus)
+clean_corp[[227]][1]
+tweets$text[227]
+
+xiaomi_tdm<-TermDocumentMatrix(clean_corp)
+xiaomi_dtm<-DocumentTermMatrix(clean_corp)
+xiaomi_m<-as.matrix(xiaomi_dtm)
+dim(xiaomi_m)
+xiaomi_m[100:104,100:104]
+xiaomi_t<-as.matrix(xiaomi_tdm)
+xiaomi_t[100:106,100:104]
+xiaomi_m<-as.matrix(xiaomi_tdm)
+term_frequency<-rowSums(xiaomi_m)
+term_frequency<-sort(term_frequency,decreasing = TRUE)
+term_frequency[1:10]
+barplot(term_frequency[1:10],col="tan",las=2)
+library(qdap)
+frequency<-freq_terms(tweets$text,top=10,at.least=3,
+                       stopwords="Top200Words")
+plot(frequency)
+frequency2<-freq_terms(tweets$text,top=10,at.least=3,
+                      stopwords = tm::stopwords("english"))
+plot(frequency2)
+dim(xiaomi_tdm)
+tdm1<-removeSparseTerms(xiaomi_tdm,sparse=0.95)
+tdm1
+tdm2<-removeSparseTerms(xiaomi_tdm,sparse = 0.975)
+tdm2
+tdm_m<-as.matrix(tdm2)
+tdm_df<-as.data.frame(tdm_m)
+tweets_dist<-dist(tdm_df)
+hc<-hclust(tweets_dist)
+plot(hc)
+library(dendextend)
+hcd<-as.dendrogram(hc)
+hcd<-branches_attr_by_labels(hcd,c("eduaubdedubu",
+                                   "eduaubdedubu",
+                                   "merepaasgifhai"),"red")
+plot(hcd,main="better dendogram")
+rect.dendrogram(hcd,k=2,border = "grey50")
+rect.dendrogram(hcd,k=3,border = "grey50")
+
+associations<-findAssocs(xiaomi_tdm,"smart",0.2)
+associations
+associations_df <- list_vect2df(associations)[, 2:3]
+library(ggplot2)
+ggplot(associations_df, aes(y = associations_df[, 1])) +   geom_point(aes(x = associations_df[, 2]),              data = associations_df, size = 3) 
+
+associations<-findAssocs(xiaomi_tdm,"happy",0.2)
+associations
+associations_df <- list_vect2df(associations)[, 2:3]
+library(ggplot2)
+ggplot(associations_df, aes(y = associations_df[, 1])) +   geom_point(aes(x = associations_df[, 2]),              data = associations_df, size = 3) 
+
+
+
+
+install.packages("qdap", INSTALL_opts = "--no-multiarch")
+
+
