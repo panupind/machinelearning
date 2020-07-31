@@ -1,0 +1,186 @@
+---
+title: "ML_assignment"
+author: "Siva Prakaash S M"
+date: "29/07/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+# knitr::opts_chunk$set(echo = TRUE)
+# install.packages('caret');
+# install.packages('xgboost');
+# install.packages("naivebayes")
+# install.packages('tidyverse')
+
+```
+Including neccessary libraries.
+```{r}
+library(dummies)
+library(caTools)
+library(caret)
+library(xgboost)
+library(mlbench)
+library(class)
+library(naivebayes)
+library(tidyverse)
+```
+
+## Loading the data.
+```{r cars}
+data = read.csv('Cars.csv')
+
+```
+
+## Removing null value as there were one row.
+```{r}
+data  = data[complete.cases(data),]
+```
+
+
+## Mulitnominal to binominal class 0 for cars and 1 for 2 wheeler and pubic transport(others).
+## converting the gender column to 1(Male) and 0(Female).
+
+```{r}
+# Updating the Target varaible to binominal class
+levels(data$Transport)
+levels(data$Transport) <- list("0"="Car", "1"="2Wheeler", "1"="Public Transport")
+str(data)
+levels(data$Gender) <- list("1"="Male", "0"="Female")
+data$Gender = as.numeric(as.character(data$Gender))
+nrow(data)
+```
+
+```{r}
+# Normalize Data
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x))) 
+}
+
+normalizeData <- as.data.frame(lapply(data[0:8], normalize))
+normalizeData$Transport = data$Transport
+
+```
+
+```{r}
+head(data)
+tail(data)
+```
+## Test Train split (70-30)
+```{r}
+set.seed(100)
+split = sample.split(normalizeData$Transport, SplitRatio = 0.7)
+traindata = subset(normalizeData, split == TRUE)
+testdata = subset(normalizeData, split == FALSE)
+prop.table(table(traindata$Transport))
+prop.table(table(testdata$Transport))
+
+data_train_labels <- traindata$Transport
+data_test_labels <- testdata$Transport
+
+```
+```{r}
+#ssTrain = traindata[,c(7)]
+#head(traindata[,c(8)])
+
+#Dependent Variables
+data_train_labels <- traindata$Transport
+data_test_labels <- testdata$Transport
+
+```
+
+
+```{r}
+#IV variables
+knn_traindata = traindata[,c(1:8)]
+knn_testdata = testdata[,c(1:8)]
+
+logittestdata = testdata;
+testdata = testdata[,c(1:8)]
+
+```
+
+#Knn Model
+```{r}
+# Training the model
+data_test_pred <- knn(train = knn_traindata, test = knn_testdata, cl = data_train_labels, k=3)
+```
+
+```{r}
+confusionMatrix(data_test_pred,
+                data_test_labels, 
+                positive = "0",
+                mode="everything")
+```
+## Naivebayes
+
+```{r}
+nb <- naive_bayes(Transport ~ ., traindata)
+data_pred <- predict(nb,testdata,type="class")
+confusionMatrix(data_pred,  data_test_labels, positive = "0", mode="everything")
+```
+
+## Logit
+```{r}
+logitTrain = glm(Transport ~ ., data = traindata[, -c(2,3,4)], family=binomial)
+summary(logitTrain)
+Trainprediction <- predict(logitTrain, type = "response")
+nrow(traindata)
+length(Trainprediction)
+
+Testprediction <- predict(logitTrain, newdata=logittestdata[, -c(2,3,4)], type = "response")
+
+Testcutoff = floor(Testprediction+0.20)
+
+Testconfmat = table(Predicted=Testcutoff, Actual=data_test_labels)
+confusionMatrix(Testconfmat, positive="0", mode="everything")
+
+```
+## xgboost
+```{r}
+xgboostModel <- train(
+  Transport ~., data = traindata, method = "xgbTree",
+  trControl = trainControl("cv", number = 3)
+)
+```
+
+```{r}
+# Best tuning parameter
+xgboostModel$bestTune
+varImp(xgboostModel)
+plot(varImp(xgboostModel))
+```
+
+```{r}
+# Make predictions on the test data
+predicted.classes <- xgboostModel %>% predict(testdata)
+head(predicted.classes)
+```
+
+```{r}
+TestconfmaXg= table(Predicted=predicted.classes, Actual=data_test_labels)
+confusionMatrix(TestconfmaXg, positive="0", mode="everything")
+```
+# Caret package logit. (No tunning parameter available) [Ignore this, just for practice]
+```{r}
+lmModel <- train(
+  Transport ~., data = traindata, method = "glm",
+  trControl = trainControl("cv", number = 3)
+)
+predictedLmData <- lmModel %>% predict(testdata)
+Testlmdata= table(Predicted=predictedLmData, Actual=data_test_labels)
+confusionMatrix(Testlmdata, positive="0", mode="everything")
+```
+## knn with caret train package - [Ignore this, just for practice]
+```{r}
+knnFit1 <- train(knn_traindata, data_train_labels,
+method = "knn",
+tuneLength = 10,
+trControl = trainControl(method = "cv", number = 3))
+
+predictedknnData <- knnFit1 %>% predict(knn_testdata)
+
+Testknndata= table(Predicted=predictedknnData, Actual=data_test_labels)
+confusionMatrix(Testknndata, positive="0", mode="everything")
+```

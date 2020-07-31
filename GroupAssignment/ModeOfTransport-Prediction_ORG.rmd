@@ -7,8 +7,8 @@ output: html_document
 Sys.unsetenv("http_proxy")
 Sys.unsetenv("https_proxy")
 #install.packages("dummies")
-# install.packages("archdata")
-# install.packages("Ckmeans.1d.dp")
+install.packages("archdata")
+install.packages("Ckmeans.1d.dp")
 ```
 
 ## R Markdown
@@ -16,7 +16,10 @@ Sys.unsetenv("https_proxy")
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
+```{r}
+Sys.unsetenv("http_proxy")
+Sys.unsetenv("https_proxy")
+```
 
 ```{r}
 library(readr)
@@ -31,47 +34,29 @@ str(dsCars)
 You can also embed plots, for example:
 
 ```{r }
-
-#Dataframe cleanup and transformation
 head(dsCars)
-
+unique( dsCars$Transport)
 
 dsCars = as.data.frame(dsCars)
 
-dsCars$Gender = as.factor(ifelse(dsCars$Gender == "Male",1 , 0) )
+dsCars$Gender = as.factor(dsCars$Gender)
 dsCars$Engineer = as.factor(dsCars$Engineer)
 dsCars$MBA = as.factor(dsCars$MBA)
 dsCars$license = as.factor(dsCars$license)
 dsCars$Transport = as.factor(dsCars$Transport)
-dsCars$Transport = as.factor(ifelse(dsCars$Transport=="Car",1 ,ifelse(dsCars$Transport=="2Wheeler", 2 , 3)))
 names(dsCars)
 
 str(dsCars)
 ```
 ```{r}
 
-lapply(dsCars,function(x) { length(which(is.na(x)))})
-
-dsCars[is.na(dsCars)] = 0
-
-lapply(dsCars,function(x) { length(which(is.na(x)))})
-unique(dsCars$Transport)
-```
-
-
-```{r}
-
-str(dsCars)
-head(dsCars)
-
-
-# Check correlation only with original numeric variables
-ds_subset = subset(dsCars, select = -c(Gender , Engineer  , MBA , license , Transport ))
+ds_subset = subset(dsCars, select = -c(Gender , Engineer  , MBA , license,  Transport ))
 
 library(corrplot)
 ds_corr = cor(ds_subset)
 corrplot(ds_corr)
-
+dim(dsCars)
+names(dsCars)
 
 ```
 
@@ -79,8 +64,8 @@ corrplot(ds_corr)
 ```{r}
 
 library(dummies)
-dsCars[,-9]
-dsCars_dum  = dummy.data.frame(dsCars[,-9])
+
+dsCars_dum  = dummy.data.frame(dsCars)
 
 
 
@@ -88,7 +73,6 @@ dsCars_dum
 str(dsCars_dum)
 names(dsCars_dum)
 dim(dsCars_dum)
-
 
 ```
 
@@ -101,13 +85,41 @@ corrplot(ds_corr_all1)
 
 ```
 ```{r}
+ds_subset = as.data.frame(dsCars)
+names(dsCars)
 
-# ds_subset = as.data.frame(subset(dsCars, select = -c(  Transport )))
-# dim(ds_subset)
-# str(ds_subset)
+unique(ds_subset$Transport)
+
+ds_subset$Transport = ifelse(ds_subset$Transport=="Car",1 ,ifelse(ds_subset$Transport=="2Wheeler", 2 , 3))
+
+str(ds_subset)
+
+ 
+unique(ds_subset$Transport)
+
+ds_subset1 = subset(dsCars, select = -c(  Transport ))
+dim(ds_subset1)
+ds_subset1 = as.data.frame(ds_subset1)
+str(ds_subset1)
 
 ```
 
+```{r}
+library(dummies)
+
+dsCars_dum_1  = dummy.data.frame(ds_subset1)
+
+
+dsCars_dum_1
+str(dsCars_dum_1)
+names(dsCars_dum_1)
+dim(dsCars_dum_1)
+```
+```{r}
+library(corrplot)
+ds_corr_all2 = cor(dsCars_dum_1)
+corrplot(ds_corr_all2)
+```
 
 
 ```{r}
@@ -159,6 +171,11 @@ plot(Attr_license)
 
 
 ```
+```{r}
+
+names(dsCars)
+```
+
 
 ```{r}
 # Age , Work Exp , Salary , Distance ==> Categorical Variables Vs continuous Variable
@@ -200,10 +217,33 @@ plot(Attr_Age)
 
 ```
 
+```{r}
+dsCars$Distance
+```
+```{r}
+lapply(dsCars,function(x) { length(which(is.na(x)))})
+
+# There are no nulls in the values , hence  no need to replace any null values
+
+
+```
+```{r}
+unique(dsCars$MBA)
+
+nrow(dsCars[dsCars$MBA == 0,])
+nrow(dsCars[dsCars$MBA == 1,])
+nrow(dsCars[dsCars$MBA == 'NA',])
+```
+
+
+```{r}
+is.na(dsCars$MBA) = 0
+unique(dsCars$MBA)
+```
+
 
 ```{r}
 prop.table( table(dsCars$Transport))*100
-
 ```
 
 #Dataset  is not greatly imbalanced. Car Transport i.e. Transport By Car is about 13%
@@ -232,8 +272,11 @@ dim(testCars)
 # 267+177
 
 ```
+```{r}
+dim(trainCars[,-9])
+names(trainCars[,-9])
 
-
+```
 ```{r}
 library(nnet)
 library(caret)
@@ -267,6 +310,7 @@ predictedCars_test=predict(multinomCars ,testCars,type="class")
 ```{r}
 # Evaluate Model performance
 #install.packages("e1071")
+library(e1071)
 
 # Confusion Matrix Train
 
@@ -297,49 +341,52 @@ library("Ckmeans.1d.dp") # for xgb.ggplot.importance
 
 ```{r}
 
-names(dsCars)
-dim(dsCars)
 
-unique(dsCars$Transport)
+names(ds_subset)
+str(ds_subset)
+head(ds_subset)
 
-print( "+++++++++++++++++++++++ ")
-print( "+++++++++++++++++++++++ ")
-
-names(dsCars_dum)
-dim(dsCars_dum)
+ds_subset$Transport = as.factor(ds_subset$Transport)
+str(ds_subset)
+ds_subset = as.data.frame(ds_subset)
 
 ```
 
 
 ```{r}
-dsCars_dum_xg =  as.data.frame(cbind(dsCars_dum , dsCars$Transport ))
-head(dsCars_dum_xg)
 
-str(dsCars_dum_xg)
-colnames(dsCars_dum_xg)[13] = "Transport"
-str(dsCars_dum_xg)
-```
+numberOfClasses <- length(unique(ds_subset$Transport))
+numberOfClasses
+head(ds_subset)
 
+head(dsCars_dum_1)
 
 
-```{r}
+dsCars_dum_2 =  cbind(dsCars_dum_1 , ds_subset$Transport )
+head(dsCars_dum_2)
+
+str(dsCars_dum_2)
+
+colnames(dsCars_dum_2)[14] = "Transport"
+
 # In comparison with example == > 
-# dat == dsCars_dum_xg
+# dat == dsCars_dum_2
 # data_variables == cars_x_variables
 # data_label  == cars_label
  
-dsCars_dum_xg[,-13]
-cars_x_variables <- as.matrix(dsCars_dum_xg[,-13])
+ncol(dsCars_dum_2[,-14])
+cars_x_variables <- as.matrix(dsCars_dum_2[,-14])
 cars_x_variables
  
+ str(dsCars_dum_2)
 
-dsCars_dum_xg$Transport = as.numeric(dsCars_dum_xg$Transport)  
-cars_label <- as.numeric( dsCars_dum_xg[,"Transport"]) -1 
+dsCars_dum_2$Transport = as.numeric(dsCars_dum_2$Transport)  
+cars_label <- as.numeric( dsCars_dum_2[,"Transport"]) -1 
 class(cars_label)
  
  # For the total Data == Convert into DMatrix, so that to build a overall model for 
  
-cars_matrix <- xgb.DMatrix(data = as.matrix(dsCars_dum_xg[,-13]), label =  cars_label)
+cars_matrix <- xgb.DMatrix(data = as.matrix(dsCars_dum_2[,-14]), label =  cars_label)
  
 cars_matrix
 
@@ -347,22 +394,19 @@ cars_matrix
 
 
 
-
 ```{r}
 
-#train_index <- sample(1:nrow(cars_x_variables), nrow(cars_x_variables)*0.75)
+train_index <- sample(1:nrow(cars_x_variables), nrow(cars_x_variables)*0.75)
 
-train_index = createDataPartition(dsCars_dum_xg$Transport , p = 0.7 , list =  FALSE )
+dsCars_dum_2[,14]
 
-dsCars_dum_xg[,13]
-
-train_label <- as.numeric(dsCars_dum_xg[,"Transport"][train_index])-1
+train_label <- as.numeric(dsCars_dum_2[,"Transport"][train_index])-1
 #train_label  <- cars_x_variables[train_index]
 
-train_Data = dsCars_dum_xg[train_index,]
-test_Data = dsCars_dum_xg[-train_index,]
+train_Data = dsCars_dum_2[train_index,]
+test_Data = dsCars_dum_2[-train_index,]
 
-test_label <- as.numeric(dsCars_dum_xg[,"Transport"][-train_index])-1
+test_label <- as.numeric(dsCars_dum_2[,"Transport"][-train_index])-1
 
 head(train_Data)
 train_label
@@ -370,19 +414,19 @@ test_label
 ```
 ```{r}
 
-prop.table( table(dsCars_dum_xg$Transport))*100
+prop.table( table(dsCars_dum_2$Transport))*100
 prop.table( table(train_Data$Transport))*100
 prop.table( table(test_Data$Transport))*100
 ```
 
 ```{r}
-train.cars.matrix <- xgb.DMatrix(data = as.matrix(train_Data[,-13]), label = train_label)
+train.cars.matrix <- xgb.DMatrix(data = as.matrix(train_Data[,-14]), label = train_label)
 train.cars.matrix
 ```
 
 
 ```{r}
-test.cars.matrix <- xgb.DMatrix(data = as.matrix(test_Data[,-13]), label = test_label)
+test.cars.matrix <- xgb.DMatrix(data = as.matrix(test_Data[,-14]), label = test_label)
 test.cars.matrix
 
 
@@ -490,8 +534,8 @@ confusionMatrix(factor(cars_test_prediction$max_prob),
 ```{r}
 
 # get the feature real names
-cars_names <-  colnames(dsCars_dum_xg)
-colnames(dsCars_dum_xg[,-13])
+cars_names <-  colnames(dsCars_dum_2)
+colnames(dsCars_dum_2[,-14])
 # compute feature importance matrix
 importance_matrix = xgb.importance(feature_names = cars_names, model = bst_model)
 head(importance_matrix)

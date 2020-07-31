@@ -1,0 +1,223 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+Sys.unsetenv("http_proxy")
+Sys.unsetenv("https_proxy")
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+library(readr)
+dsCarsBin <- read_csv("Cars.csv")
+dim(dsCarsBin)
+summary(dsCarsBin)
+str(dsCarsBin)
+#dsCarsBin = na.omit(dsCarsBin)
+dsCarsBin[is.na(dsCarsBin$Age),]
+```
+```{r}
+head(dsCarsBin)
+unique( dsCarsBin$Transport)
+
+dsCarsBin = as.data.frame(dsCarsBin)
+
+dsCarsBin$Gender = as.factor(ifelse(dsCarsBin$Gender=="Male",1,0))
+dsCarsBin$Engineer = as.factor(dsCarsBin$Engineer)
+dsCarsBin$MBA = as.factor(dsCarsBin$MBA)
+dsCarsBin$license = as.factor(dsCarsBin$license)
+dsCarsBin$Transport = as.factor(dsCarsBin$Transport)
+names(dsCarsBin)
+
+str(dsCarsBin)
+
+dsCarsBin$Transport = as.factor(ifelse(dsCarsBin$Transport=="Car",1 ,0))
+
+
+# dsCarsBin$MBA = as.numeric(dsCarsBin$MBA)
+# dsCarsBin$Engineer = as.numeric(dsCarsBin$Engineer)
+# dsCarsBin$license = as.numeric(dsCarsBin$license)
+# dsCarsBin$Gender = as.numeric(dsCarsBin$Gender)
+# str(dsCarsBin)
+
+
+```
+```{r}
+lapply(dsCarsBin,function(x) { length(which(is.na(x)))})
+dsCarsBin[is.na(dsCarsBin)] = 0
+lapply(dsCarsBin,function(x) { length(which(is.na(x)))})
+```
+
+```{r}
+unique(dsCarsBin$Transport)
+prop.table( table(dsCarsBin$Transport))*100
+```
+
+```{r}
+library(caret)
+library(e1071)
+library(caTools)
+
+set.seed(1234)
+
+
+
+trainIndexBin =  sample.split(dsCarsBin$Transport, SplitRatio = 0.7)
+
+trainCarsBin = subset(dsCarsBin, trainIndexBin == TRUE)
+testCarsBin = subset(dsCarsBin, trainIndexBin == FALSE)
+
+nrow(trainCarsBin)
+nrow(testCarsBin)
+
+
+
+# trainCarsBin = na.omit(trainCarsBin)
+# lapply(testCarsBin,function(x) { length(which(is.na(x)))})
+
+
+```
+
+
+
+
+```{r}
+prop.table( table(trainCarsBin$Transport))*100
+dim(trainCarsBin)
+prop.table( table(testCarsBin$Transport))*100
+dim(testCarsBin)
+
+```
+
+```{r}
+
+
+
+str(dsCarsBin)
+model_logit <- glm ( Transport ~ ., data= trainCarsBin, family = binomial, na.action  = na.exclude)
+summary(model_logit)
+
+
+
+
+```
+
+```{r}
+predictedCarsBin_train = predict(model_logit , data = trainCarsBin,  type="response")
+length(predictedCarsBin_train)
+
+
+```
+
+
+```{r}
+
+trainCutoff = floor(predictedCarsBin_train +0.20)
+length(trainCutoff)
+trainCarsBinCnfMtrx = table(Predicted= trainCutoff , Actual=  trainCarsBin$Transport)
+
+# Confusion Matrix Train
+confusionMatrix(trainCarsBinCnfMtrx ,  mode="everything" , positive = "1")
+
+
+
+```
+```{r}
+predictedCarsBin_test = predict(model_logit , newdata  = testCarsBin,  type="response")
+
+
+```
+
+```{r}
+testCutoff = floor(predictedCarsBin_test +0.20)
+length(testCutoff)
+testCarsBinCnfMtrx = table(Predicted= testCutoff , Actual=  testCarsBin$Transport)
+
+# Confusion Matrix Test
+confusionMatrix(testCarsBinCnfMtrx ,  mode="everything" , positive = "1")
+```
+
+```{r}
+model_xgboost <- train(
+  Transport ~., data = trainCarsBin,method = "xgbTree",
+  trControl = trainControl("cv", number = 3)
+)
+
+
+
+
+```
+
+
+
+```{r}
+
+model_xgboost$bestTune
+
+
+xgb_parameters<-list(model_xgboost$bestTune)
+xgb_parameters
+
+
+```
+
+```{r}
+
+model_xgboost_best = train( Transport ~.,  data = trainCarsBin,method = "xgbTree" , trControl = trainControl("cv", number = 3))
+
+```
+
+```{r}
+predictedCarsBin_train_xgb = predict(model_xgboost_best , newdata = trainCarsBin)
+length(predictedCarsBin_train_xgb)
+predictedCarsBin_train_xgb
+
+
+```
+
+
+```{r}
+
+
+trainCarsBinCnfMtrx_xgb = table(Predicted= predictedCarsBin_train_xgb , Actual=  trainCarsBin$Transport)
+trainCarsBinCnfMtrx_xgb
+
+# Confusion Matrix Train
+confusionMatrix(trainCarsBinCnfMtrx_xgb ,  mode="everything" , positive = "1" )
+
+```
+
+
+
+```{r}
+predictedCarsBin_test_xgb = predict(model_xgboost_best , newdata = testCarsBin)
+length(predictedCarsBin_test_xgb)
+predictedCarsBin_test_xgb
+
+```
+
+
+
+
+
+```{r}
+testCarsBinCnfMtrx_xgb = table(Predicted= predictedCarsBin_test_xgb , Actual=  testCarsBin$Transport)
+testCarsBinCnfMtrx_xgb
+
+# Confusion Matrix Train
+confusionMatrix(testCarsBinCnfMtrx_xgb ,  mode="everything" , positive = "1" )
+```
+```{r}
+varImp(model_xgboost_best)
+plot(varImp(model_xgboost_best))
+```
